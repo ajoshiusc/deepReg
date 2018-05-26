@@ -17,6 +17,6 @@ anat/sub-01_T1w.bse.nii.gz')
     img2 = resample_img(img, target_affine=aff, target_shape=(64, 64, 64))
     plot_anat(img2)
 
- #   dr3.train_model(img.get_data())
+    dr3.train_model(img2.get_data())
 
 #    dr3.test_model()

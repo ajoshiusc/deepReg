@@ -110,7 +110,7 @@ def get_rr_net():
 def gen_train_data(img, N=1024,  nodist=0):
     imgs_train = np.zeros((N, img.shape[0], img.shape[1], img.shape[2], 2))
     noise = uniform(low=-1,high=1,size=imgs_train.shape)
-    out_train = np.zeros((N, 3))
+    out_train = np.zeros((N, 5))
     rot1 = uniform(low=-60, high=60, size=(N,1))
     rot2 = uniform(low=-60, high=60, size=(N,1))
     tx = uniform(low=-100, high=100, size=(N,1))
