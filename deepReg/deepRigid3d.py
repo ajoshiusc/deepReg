@@ -9,9 +9,7 @@ Created on Sat May 26 13:29:00 2018
 #AUM
 #Shree Ganeshaya Namaha
 #tf.test.gpu_device_name()
-from scipy.ndimage.interpolation import rotate
-from skimage.color import rgb2gray
-from skimage.io import imread
+from scipy.ndimage.interpolation import rotate, shift
 from keras.layers import Input,Conv3D,concatenate,MaxPooling3D,Flatten,Dense,Dropout
 from keras.models import Model
 from keras.callbacks import ModelCheckpoint
@@ -20,7 +18,6 @@ import numpy as np
 from numpy.random import uniform
 import matplotlib.pyplot as plt
 from skimage.viewer import ImageViewer
-import cv2
 from scipy.ndimage.interpolation import map_coordinates
 from scipy.ndimage.filters import gaussian_filter
 import matplotlib.pyplot as plt
@@ -61,7 +58,7 @@ def elastic_transform(image, alpha, sigma, alpha_affine, random_state=None):
     dy = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma) * alpha
     dz = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma) * alpha
 
-    x, y, z = np.ndgrid(np.arange(shape[0]), np.arange(shape[1]), np.arange(shape[2]))
+    x, y, z = np.meshgrid(np.arange(shape[0]), np.arange(shape[1]), np.arange(shape[2]), indexing='xy')
     indices = np.reshape(x+dx, (-1, 1)), np.reshape(y+dy, (-1, 1)), np.reshape(z+dz, (-1, 1))
 
     return map_coordinates(image, indices, order=1, mode='reflect').reshape(shape)
@@ -129,25 +126,32 @@ def gen_train_data(img, N=1024,  nodist=0):
     for j in range(N):
       
 #        img2 = tf.warp(img,aff)
-        img2 = rotate(img, angle=in_rot1[j], axes=[0,1], mode='edge',reshape=False)
+        img2 = rotate(img, angle=in_rot1[j],
+                      axes=[1, 0], mode='wrap', reshape=False)
+        img2 = rotate(img, angle=in_rot2[j],
+                      axes=[0, 1], mode='wrap', reshape=False)
+
         img2 -= np.mean(img2)
         img2 /= np.std(img2)
         if nodist==0:
             img2 = elastic_transform(img2, img2.shape[1] * 1.2, img2.shape[1] * 0.08,img2.shape[1] * 0.08)
         
-        imgs_train[j, :, :, 0] = img2 + (1.0-nodist)*noise[j,:,:,0]
-       
-        aff = tf.AffineTransform(rotation = (np.pi/180.0)*np.float(rot[j]), translation=(tx[j],ty[j]))
+        imgs_train[j, :, :, :, 0] = img2 + (1.0-nodist)*noise[j,:,:,:,0]
 
+        img3 = rotate(img2, angle=rot1[j],
+                      axes=[1, 0], mode='wrap', reshape=False)
+        img3 = rotate(img2, angle=rot2[j],
+                      axes=[0, 1], mode='wrap', reshape=False)
+        img3 = shift(img3, [tx[j], ty[j], tz[j]])
         #img3 = 10-1*np.tanh(img2) + 0*  noise[j,:,:,1]#
-        img3 = 10-1*np.tanh(tf.warp(img2, aff, mode='edge')) +  (1.0-nodist)*noise[j,:,:,1]#
+        img3 = 10-1*np.tanh(img3) +  (1.0-nodist)*noise[j,:,:,:,1]#
         
         if nodist == 0:
             img3 = elastic_transform(img3, img3.shape[1] * .2, img3.shape[1] * 0.08,img3.shape[1] * 0.08)
 
         img3 -= np.mean(img3)
         img3 /= np.std(img3)
-        imgs_train[j, :, :, 1] = img3
+        imgs_train[j, :, :, :, 1] = img3
         
         if 0:
             plt.imshow(img3)
