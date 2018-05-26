@@ -107,9 +107,9 @@ def gen_train_data(img, N=64,  nodist=0):
     out_train = np.zeros((N, 5))
     rot1 = uniform(low=-60, high=60, size=(N,1))
     rot2 = uniform(low=-60, high=60, size=(N,1))
-    tx = uniform(low=-100, high=100, size=(N,1))
-    ty = uniform(low=-100, high=100, size=(N,1))
-    tz = uniform(low=-100, high=100, size=(N,1))
+    tx = uniform(low=-np.floor(img.shape[0]/3.0), high=np.floor(img.shape[0]/3.0), size=(N,1))
+    ty = uniform(low=-np.floor(img.shape[1]/3.0), high=np.floor(img.shape[1]/3.0), size=(N,1))
+    tz = uniform(low=-np.floor(img.shape[2]/3.0), high=np.floor(img.shape[2]/3.0), size=(N,1))
     out_train[:,0]=rot1.squeeze()
     out_train[:,1]=rot2.squeeze()
     out_train[:,2]=tx.squeeze()
@@ -172,8 +172,8 @@ def train_model(img):
 
     print('Fitting Model')
     for repind in range(100):
-        imgs_train, out_train = gen_train_data(img, 512)
-        history = rrmodel.fit(imgs_train, out_train, batch_size=64, epochs=5, verbose=1,
+        imgs_train, out_train = gen_train_data(img, 64)
+        history = rrmodel.fit(imgs_train, out_train, batch_size=8, epochs=5, verbose=1,
                               shuffle=True, validation_split=0.2,
                               callbacks=[model_checkpoint])
 
