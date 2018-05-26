@@ -25,9 +25,6 @@ import matplotlib.pyplot as plt
 K.set_image_data_format('channels_last')  # TF dimension ordering in this code
 
 from keras import losses
-sizeX = 128
-sizeY = 128
-sizeZ = 128
 
 #taken from: https://www.kaggle.com/bguberfain/elastic-transform-for-data-augmentation
 # Function to distort image
@@ -45,7 +42,7 @@ def elastic_transform(image, alpha, sigma, alpha_affine, random_state=None):
 
     shape = image.shape
     shape_size = shape[:3]
-    
+
     # Random affine
     center_square = np.float32(shape_size) // 2
     square_size = min(shape_size) // 3
@@ -65,8 +62,8 @@ def elastic_transform(image, alpha, sigma, alpha_affine, random_state=None):
 
 
 
-def get_rr_net():
-    inputs = Input((sizeX, sizeY, sizeZ, 2))
+def get_rr_net(isize=[128,128,128]):
+    inputs = Input((isize[0], isize[1], isize[2], 2))
     conv1 = Conv3D(32, (3, 3, 3), activation='relu', padding='same')(inputs)
     conv1 = Conv3D(32, (3, 3, 3), activation='relu', padding='same')(conv1)
     pool1 = MaxPooling3D(pool_size=(2, 2, 2))(conv1)
@@ -78,7 +75,7 @@ def get_rr_net():
     conv3 = Conv3D(128, (3, 3, 3), activation='relu', padding='same')(pool2)
     conv3 = Conv3D(128, (3, 3, 3), activation='relu', padding='same')(conv3)
     pool3 = MaxPooling3D(pool_size=(2, 2, 2))(conv3)
-    
+
     conv4_1 = Conv3D(256, (3, 3, 3), activation='relu', padding='same')(pool3)
     conv4 = Conv3D(256, (3, 3, 3), activation='relu', padding='same')(conv4_1)
     conv4 = Conv3D(256, (3, 3, 3), activation='relu', padding='same')(conv4)
@@ -124,7 +121,7 @@ def gen_train_data(img, N=1024,  nodist=0):
     in_rot2 = uniform(low=-60, high=60, size=(N,1))
 
     for j in range(N):
-      
+
 #        img2 = tf.warp(img,aff)
         img2 = rotate(img, angle=in_rot1[j],
                       axes=[1, 0], mode='wrap', reshape=False)
@@ -135,7 +132,7 @@ def gen_train_data(img, N=1024,  nodist=0):
         img2 /= np.std(img2)
         if nodist==0:
             img2 = elastic_transform(img2, img2.shape[1] * 1.2, img2.shape[1] * 0.08,img2.shape[1] * 0.08)
-        
+
         imgs_train[j, :, :, :, 0] = img2 + (1.0-nodist)*noise[j,:,:,:,0]
 
         img3 = rotate(img2, angle=rot1[j],
@@ -145,21 +142,14 @@ def gen_train_data(img, N=1024,  nodist=0):
         img3 = shift(img3, [tx[j], ty[j], tz[j]])
         #img3 = 10-1*np.tanh(img2) + 0*  noise[j,:,:,1]#
         img3 = 10-1*np.tanh(img3) +  (1.0-nodist)*noise[j,:,:,:,1]#
-        
+
         if nodist == 0:
             img3 = elastic_transform(img3, img3.shape[1] * .2, img3.shape[1] * 0.08,img3.shape[1] * 0.08)
 
         img3 -= np.mean(img3)
         img3 /= np.std(img3)
         imgs_train[j, :, :, :, 1] = img3
-        
-        if 0:
-            plt.imshow(img3)
-            plt.show()
-            
-            plt.imshow(img2)
-            plt.show()
-             
+
     return imgs_train, out_train
 
 
@@ -173,10 +163,10 @@ def train_model(img):
 
     img -= mean
     img /= std
-    
+
 
     print('Creating and compiling model...')
-    rrmodel = get_rr_net()
+    rrmodel = get_rr_net(img.shape)
 #    rrmodel.load_weights('weights.h5')
     model_checkpoint = ModelCheckpoint('weights3d.h5', monitor='val_loss', save_best_only=True)
 
@@ -205,10 +195,10 @@ def train_model(img):
     plt.xlabel('epoch')
     plt.legend(['train', 'test'], loc='upper left')
     plt.show()
-    
-    
+
+
 def test_model():
-    
+
     print('Test data...')
     img = resize(rgb2gray(imread('sample_brain.png')).astype('float32'),(img_rows,img_cols),mode='reflect')
     mean = np.mean(img)  # mean for data centering
@@ -227,7 +217,7 @@ def test_model():
     pred_theta = rrmodel.predict(imgs_test, verbose=1)
 
     for jj in range(4):
-        fig=plt.figure(figsize=(20,10)); 
+        fig=plt.figure(figsize=(20,10));
         fig.add_subplot(1,3,1);ax = plt.gca(); ax.grid(False)
         plt.axis('off')
         plt.imshow(np.absolute(imgs_test[jj,:,:,0].squeeze()),cmap='gray')
@@ -240,8 +230,8 @@ def test_model():
         plt.axis('off')
         plt.imshow(img2,cmap='gray')
         plt.show()
-    
-    
+
+
     print(pred_theta)
     print(out_test)
 
