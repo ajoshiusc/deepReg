@@ -101,7 +101,7 @@ def get_rr_net(isize=[128,128,128]):
     return model
 
 
-def gen_train_data(img, N=1024,  nodist=0):
+def gen_train_data(img, N=64,  nodist=0):
     imgs_train = np.zeros((N, img.shape[0], img.shape[1], img.shape[2], 2))
     noise = uniform(low=-1,high=1,size=imgs_train.shape)
     out_train = np.zeros((N, 5))
